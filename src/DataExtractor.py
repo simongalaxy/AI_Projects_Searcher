@@ -34,7 +34,7 @@ class DataExtractor:
         
         combined_content = f"Title:\n{item.title}\nContent:\n{item.content}"
         prompt = f"""
-        Extract the informatio from the content and strictly follow the rule below:
+        Extract the information from the content and strictly follow the rule below:
         
         content: \n{combined_content}\n
         
@@ -74,35 +74,3 @@ class DataExtractor:
         
         return
         
-
-#   def generate_summary(self, news_list: List[News]):
-
-#     # 1. 準備摘要內容：初始化字串
-#     content = "Contents:\n\n"
-
-#     # 2. 遍歷新聞列表，先將所有內容完整組合（注意：三引號內不要額外加 \n）
-#     for news in news_list:
-#         meta_dict = json.loads(news.metadata)
-#         content += f"""Date: {meta_dict.get('published_date_time')}
-#                       Title: {meta_dict.get('title')}
-#                       Department: {meta_dict.get('subject_department')}
-#                       Summary: {",".join(meta_dict.get('summary'))}
-
-#                       """
-
-#     # 3. 檢查組合後的內容（移到迴圈外，只印出一次）
-#     print(f"Combined Content for LLM summarization: \n{content}\n\n")
-
-#     resp = self.client.create(
-#         model=self.model,
-#         messages=[
-#             {
-#                 "role": "user",
-#                 "content": f"Summarize the following content not less than 800 words by departments in chronological order: \n{content}",
-#             }
-#         ],
-#         response_model=Summary,
-#     )
-
-#     print(f"Summary: \n{resp.model_dump_json(indent=2)}")
-#     return

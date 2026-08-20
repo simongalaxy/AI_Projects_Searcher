@@ -40,12 +40,11 @@ def main():
         logger.info("\n")
         
         # extract information from the news.
-        asyncio.run(extractor.extract_data_from_all_news(state=state))
+        # asyncio.run(extractor.extract_data_from_all_news(state=state))
         
         # # save news to database.
-        logger.info(f"Start saving total {len(state.news_items)} to database.")
+        # logger.info(f"Start saving total {len(state.news_items)} to database.")
         for item in state.news_items:
-            # logger.info(f"Scraped News: \n{pformat(item.model_dump())}\n")
             dbhandler.insert_news(item=item)
         
         

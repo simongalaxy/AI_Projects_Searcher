@@ -56,16 +56,18 @@ class PG_DBHandler:
     
     def _create_table(self) -> None:
         create_table_query = """
-        CREATE TABLE IF NOT EXISTS GovNews (
+        CREATE EXTENSION IF NOT EXISTS vector;
+        
+        CREATE TABLE IF NOT EXISTS PressReleases (
             id TEXT UNIQUE NOT NULL,
             title TEXT NOT NULL,
             content TEXT,
+            content_type TEXT,
             url TEXT NOT NULL,
             published_date DATE,
-            subject_department TEXT[],
-            summary TEXT[],
-            category TEXT,
-            keywords TEXT[],
+            subject_department TEXT,
+            summary TEXT,
+            summary_embeddings vector(1536),
             created_at TIMESTAMPTZ DEFAULT NOW(),
             updated_at TIMESTAMPTZ DEFAULT NOW()
         );
@@ -89,19 +91,19 @@ class PG_DBHandler:
         
         """Insert or update a news item. Returns the id on success."""
         insert_query = """
-        INSERT INTO GovNews (
-            id, title, content, url, published_date, subject_department, summary, category, keywords
+        INSERT INTO PressReleases (
+            id, title, content, content_type, url, published_date, subject_department, summary, summary_embeddings
         )
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT (id) DO UPDATE SET
             title = EXCLUDED.title,
             content = EXCLUDED.content,
+            content_type = EXCLUDED.content_type,
             url = EXCLUDED.url,
             published_date = EXCLUDED.published_date,
             subject_department = EXCLUDED.subject_department,
             summary = EXCLUDED.summary,
-            category = EXCLUDED.category,
-            keywords = EXCLUDED.keywords
+            summary_embeddings = EXCLUDED.summary_embeddings
         RETURNING id;
         """
 
@@ -109,12 +111,12 @@ class PG_DBHandler:
             item.id,
             item.title,
             item.content,
+            item.content_type,
             item.url,
             item.published_date,
-            item.extracted_data.subject_department,
-            item.extracted_data.summary,
-            item.extracted_data.category,
-            item.extracted_data.keywords
+            item.extracted_data.subject_department if item.extracted_data else None,
+            item.extracted_data.summary if item.extracted_data else None,
+            item.extracted_data.summary_embeddings if item.extracted_data else None
         )
 
         try:
@@ -137,57 +139,52 @@ class PG_DBHandler:
             return None
 
 
-    # update the records in database with extracted job information to respective job accordingly.
-    # def update_news(self, item: ExtractedData) -> str | None:
-    #     update_query = """UPDATE GovNews SET
-    #         subject_department = %s,
-    #         summary = %s,
-    #         category = %s,
-    #         keywords = %s,
-    #         content_type = %s,
-    #         updated_at = NOW()
-    #     WHERE id = %s
-    #     RETURNING id;
-    #     """
+    #update the records in database with extracted job information to respective job accordingly.
+    def update_news(self, item: ExtractedData) -> str | None:
+        update_query = """UPDATE PressReleases SET
+            subject_department = %s,
+            summary = %s,
+            summary_embeddings = %s,
+            updated_at = NOW()
+        WHERE id = %s
+        RETURNING id;
+        """
 
-    #     # Note that job_item.id moves to the VERY END of the tuple to match the WHERE clause
-    #     values = (
-    #         item.subject_department,
-    #         item.summary,
-    #         item.category,
-    #         item.keywords,
-    #         item.content_type,
-    #         item.id, 
-    #     )
+        # Note that job_item.id moves to the VERY END of the tuple to match the WHERE clause
+        values = (
+            item.subject_department,
+            item.summary,
+            item.summary_embeddings,
+            item.id, 
+        )
 
-    #     try:
-    #         with self.conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-    #             cur.execute(update_query, values)
-    #             row = cur.fetchone()
+        try:
+            with self.conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+                cur.execute(update_query, values)
+                row = cur.fetchone()
 
-    #             if row:
-    #                 inserted_id = row["id"]
-    #                 self.logger.info(f"Inserted/Updated news_id - {inserted_id}")
-    #                 return inserted_id
-    #             else:
-    #                 self.logger.info(f"No row returned for news id - {item.id}")
-    #                 return None
+                if row:
+                    inserted_id = row["id"]
+                    self.logger.info(f"Inserted/Updated news_id - {inserted_id}")
+                    return inserted_id
+                else:
+                    self.logger.info(f"No row returned for news id - {item.id}")
+                    return None
 
-    #     except Exception as e:
-    #         self.logger.error(f"Error inserting job {item.id}: {e}")
-    #         # Do NOT raise here if you want the pipeline to continue
-    #         # raise  
-    #         return None
+        except Exception as e:
+            self.logger.error(f"Error inserting job {item.id}: {e}")
+            # Do NOT raise here if you want the pipeline to continue
+            # raise  
+            return None
     
     
     def retrieve_news_for_extracting_data(self, state: State) -> None:
         base = """
             SELECT
                 id,
-                published_date,
                 title,
                 content
-            FROM GovNews
+            FROM PressReleases
         """
         
         where_clauses = []

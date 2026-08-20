@@ -8,6 +8,7 @@ dependencies = [
     "aiohttp>=3.13.5",
     "bs4>=0.0.2",
     "dotenv>=0.9.9",
+    "fastembed>=0.8.0",
     "instructor>=1.15.4",
     "psycopg2>=2.9.12",
     "pydantic>=2.12.5",
