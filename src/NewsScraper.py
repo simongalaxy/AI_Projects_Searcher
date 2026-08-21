@@ -95,7 +95,7 @@ class NewsScraper:
             content_type=content_type,
             url=str(url),
             extracted_data=None,
-            summary_embeddings=None
+            summary=None
         )
         self.logger.info("Fetched news item: \n%s", pformat(item.model_dump(by_alias=True), indent=4))
         
