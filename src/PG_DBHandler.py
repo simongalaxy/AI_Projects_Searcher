@@ -7,7 +7,7 @@ from pprint import pformat
 
 from src.Settings import settings
 from src.logger import Logger
-from src.States import NewsItem, ParsedQuery, State, ExtractedData
+from src.States import NewsItem, ParsedQuery, State, ExtractedData, Summary
 
 
 class PG_DBHandler:
@@ -143,12 +143,10 @@ class PG_DBHandler:
 
 
     #update the records in database with extracted job information to respective job accordingly.
-    def update_news(self, item: ExtractedData) -> str | None:
+    def update_news_classification(self, item: ExtractedData) -> str | None:
         update_query = """UPDATE PressReleases SET
             subject_department = %s,
             ai_related = %s,
-            summary = %s,
-            summary_embeddings = %s,
             updated_at = NOW()
         WHERE id = %s
         RETURNING id;
@@ -158,8 +156,6 @@ class PG_DBHandler:
         values = (
             item.subject_department,
             item.ai_related,
-            item.summary.content,
-            item.summary.embeddings,
             item.id, 
         )
 
@@ -183,7 +179,7 @@ class PG_DBHandler:
             return None
     
     
-    def retrieve_news_for_extracting_data(self, state: State) -> None:
+    def retrieve_news_for_extracting_data(self, state: State, start_date, end_date) -> None:
         base = """
             SELECT
                 id,
@@ -196,13 +192,22 @@ class PG_DBHandler:
         params = []
 
         # date range
-        if state.parsed_query.start_date and state.parsed_query.end_date:
+        # if state.parsed_query.start_date and state.parsed_query.end_date:
+        #     where_clauses.append("published_date BETWEEN %s AND %s")
+        #     params.append(state.parsed_query.start_date)
+        #     params.append(state.parsed_query.end_date)
+        # elif state.parsed_query.start_date or state.parsed_query.end_date:
+        #     where_clauses.append("published_date = %s")
+        #     params.append(state.parsed_query.start_date)
+        # else:
+        #     pass
+        if start_date and end_date:
             where_clauses.append("published_date BETWEEN %s AND %s")
-            params.append(state.parsed_query.start_date)
-            params.append(state.parsed_query.end_date)
-        elif state.parsed_query.start_date or state.parsed_query.end_date:
+            params.append(start_date)
+            params.append(end_date)
+        elif start_date or end_date:
             where_clauses.append("published_date = %s")
-            params.append(state.parsed_query.start_date)
+            params.append(start_date)
         else:
             pass
         
@@ -219,10 +224,10 @@ class PG_DBHandler:
         with self.conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             cur.execute(sql, params)
             rows = cur.fetchall()
-            state.retrieved_items = [dict(row) for row in rows]
-            self.logger.info(f"Total no. of news retrieved from period {state.parsed_query.start_date} to {state.parsed_query.end_date}: {len(state.retrieved_items)}")
-            self.logger.info(f"First retrieved news: \n%s", pformat(state.retrieved_items[0], indent=2))
-            self.logger.info(f"DataType of retreived news: {type(state.retrieved_items[0])}")
+            state.search_results = [dict(row) for row in rows]
+            self.logger.info(f"Total no. of news retrieved from period {start_date} to {end_date}: {len(state.search_results)}")
+            self.logger.info(f"First retrieved news: \n%s", pformat(state.search_results[0], indent=2))
+            self.logger.info(f"DataType of retreived news: {type(state.search_results[0])}")
             
             return
         

@@ -7,10 +7,12 @@ class ParsedQuery(BaseModel):
     end_date: str | None = Field(description="The ending date, ISO date format YYYY-MM-DD")
 
 class Summary(BaseModel):
+    id: str = Field(description="ID of the press release")
     content: str = Field(description="Summary of Press Release with maximum 800 words. All names should be kept.")
     embeddings: List[float] | None    
     
 class ExtractedData(BaseModel):
+    id: str = Field(description="ID of the press release")
     subject_department: str = Field(description="Subject Department/Bureau issued this press release")
     ai_related: bool = Field(description="if the content of the press release is relating to Artificial Intelligence, set True, Otherwise, False")
 

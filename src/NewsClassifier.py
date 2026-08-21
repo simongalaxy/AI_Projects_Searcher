@@ -9,10 +9,10 @@ from typing import List
 
 from src.logger import Logger
 from src.Settings import settings
-from src.States import State, ExtractedData, NewsItem
+from src.States import State, ExtractedData
 
 
-class DataExtractor:
+class NewsClassifier:
     def __init__(self, logger: Logger):
         # logger setting.
         self.logger = logger
@@ -30,9 +30,11 @@ class DataExtractor:
         )
 
 
-    async def _extract_data(self, item: NewsItem):
+    async def _extract_data(self, item: dict) -> ExtractedData:
         
-        combined_content = f"Title:\n{item.title}\nContent:\n{item.content}"
+        combined_content = f"id: {item.get('id')}\nTitle:\n{item.get('title')}\nContent:\n{item.get('content')}"
+        self.logger.info(f"Combined content: \n{combined_content}")
+        
         prompt = f"""
         Extract the information from the content and strictly follow the rule below:
         
@@ -51,10 +53,11 @@ class DataExtractor:
             response_model=ExtractedData,
         )
         
-        item.extracted_data = ExtractedData.model_validate(resp)
-        self.logger.info(f"Extracted item: \n%s", pformat(item.model_dump(by_alias=True), indent=2))
+        extracted_data = ExtractedData.model_validate(resp)
+        self.logger.info(f"id: {item.get('id')}, \ntitle: {item.get('title')}")
+        self.logger.info(f"Extracted item: \n%s", pformat(extracted_data.model_dump(by_alias=True), indent=2))
         
-        return
+        return extracted_data
         
         
     async def extract_data_from_all_news(self, state: State):
@@ -63,14 +66,14 @@ class DataExtractor:
         
         semaphore = asyncio.Semaphore(4) # Tune this (3~6) based on your GPU/RAM
         
-        async def bounded_extract(item: NewsItem):
+        async def bounded_extract(item: dict):
             async with semaphore:
                 return await self._extract_data(item = item)
 
-        tasks = [bounded_extract(item=item) for item in state.news_items]
-        await asyncio.gather(*tasks, return_exceptions=True)
+        tasks = [bounded_extract(item=result) for result in state.search_results]
+        extracted_datas = await asyncio.gather(*tasks, return_exceptions=True)
         
-        self.logger.info(f"Extraction completed. {len(state.news_items)} press releases processed.")
+        self.logger.info(f"Extraction completed. {len(state.search_results)} press releases processed.")
         
-        return
+        return extracted_datas
         
