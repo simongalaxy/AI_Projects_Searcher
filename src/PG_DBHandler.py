@@ -145,7 +145,6 @@ class PG_DBHandler:
     #update the records in database with extracted job information to respective job accordingly.
     def update_news_classification(self, item: ExtractedData) -> str | None:
         update_query = """UPDATE PressReleases SET
-            subject_department = %s,
             ai_related = %s,
             updated_at = NOW()
         WHERE id = %s
@@ -154,7 +153,6 @@ class PG_DBHandler:
 
         # Note that job_item.id moves to the VERY END of the tuple to match the WHERE clause
         values = (
-            item.subject_department,
             item.ai_related,
             item.id, 
         )
@@ -178,8 +176,45 @@ class PG_DBHandler:
             # raise  
             return None
     
+    def retrieve_distinct_dates(self, start_date, end_date) -> list:
+            base = """
+                SELECT
+                    DISTINCT published_date
+                FROM PressReleases
+            """
+            
+            where_clauses = []
+            params = []
     
-    def retrieve_news_for_extracting_data(self, state: State, start_date, end_date) -> None:
+            if start_date and end_date:
+                where_clauses.append("published_date BETWEEN %s AND %s")
+                params.append(start_date)
+                params.append(end_date)
+            elif start_date or end_date:
+                where_clauses.append("published_date = %s")
+                params.append(start_date)
+            else:
+                pass
+            
+            #--- Assemble WHERE clause ---
+            where_sql = ""
+            if where_clauses:
+                where_sql = " WHERE " + " AND ".join(where_clauses)
+            else:
+                where_sql = ""
+    
+            # --- Final SQL ---
+            sql = base + where_sql + " ORDER BY published_date ASC;"
+                
+            with self.conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+                cur.execute(sql, params)
+                rows = cur.fetchall()
+                unique_dates = [dict(row) for row in rows]
+               
+                return unique_dates
+    
+    
+    def retrieve_news_for_extracting_data(self, state: State, start_date) -> None:
         base = """
             SELECT
                 id,
@@ -191,25 +226,10 @@ class PG_DBHandler:
         where_clauses = []
         params = []
 
-        # date range
-        # if state.parsed_query.start_date and state.parsed_query.end_date:
-        #     where_clauses.append("published_date BETWEEN %s AND %s")
-        #     params.append(state.parsed_query.start_date)
-        #     params.append(state.parsed_query.end_date)
-        # elif state.parsed_query.start_date or state.parsed_query.end_date:
-        #     where_clauses.append("published_date = %s")
-        #     params.append(state.parsed_query.start_date)
-        # else:
-        #     pass
-        if start_date and end_date:
-            where_clauses.append("published_date BETWEEN %s AND %s")
-            params.append(start_date)
-            params.append(end_date)
-        elif start_date or end_date:
-            where_clauses.append("published_date = %s")
-            params.append(start_date)
-        else:
-            pass
+
+        where_clauses.append("published_date = %s")
+        params.append(start_date)
+
         
         #--- Assemble WHERE clause ---
         where_sql = ""
@@ -225,9 +245,9 @@ class PG_DBHandler:
             cur.execute(sql, params)
             rows = cur.fetchall()
             state.search_results = [dict(row) for row in rows]
-            self.logger.info(f"Total no. of news retrieved from period {start_date} to {end_date}: {len(state.search_results)}")
-            self.logger.info(f"First retrieved news: \n%s", pformat(state.search_results[0], indent=2))
-            self.logger.info(f"DataType of retreived news: {type(state.search_results[0])}")
+            # self.logger.info(f"Total no. of news retrieved from period {start_date} to {end_date}: {len(state.search_results)}")
+            # self.logger.info(f"First retrieved news: \n%s", pformat(state.search_results[0], indent=2))
+            # self.logger.info(f"DataType of retreived news: {type(state.search_results[0])}")
             
             return
         

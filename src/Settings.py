@@ -16,9 +16,12 @@ class Settings(BaseSettings):
     pgdatabase: str
     
     # ollama cloud llm settings.
-    ollama_api_key: str
-    ollama_base_url: str
-    ollama_cloud_model: str
+    # ollama_api_key: str
+    # ollama_base_url: str
+    # ollama_cloud_model: str
+    
+    # ollama localhost llm settings for content classification.
+    ollama_extraction_model: str
 
     # pydantic settings config.
     model_config = SettingsConfigDict(

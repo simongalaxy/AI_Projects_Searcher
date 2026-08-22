@@ -3,10 +3,11 @@ from pprint import pformat
 
 from src.logger import Logger
 from src.States import State
-from src.NewsScraper import NewsScraper
-from src.QueryParser import QueryParser
+# from src.NewsScraper import NewsScraper
+# from src.QueryParser import QueryParser
 from src.PG_DBHandler import PG_DBHandler
-from src.NewsClassifier import NewsClassifier
+# from old_code.NewsClassifier import NewsClassifier
+from src.ContentClassifier import ContentClassifier
 
 
 
@@ -16,10 +17,11 @@ def main():
     # initialize logger and crawler
     logger = Logger(__name__).get_logger()
     state = State()
-    parser = QueryParser(logger=logger)
-    scraper = NewsScraper(logger=logger)
+    # parser = QueryParser(logger=logger)
+    # scraper = NewsScraper(logger=logger)
     dbhandler = PG_DBHandler(logger=logger)
-    classifier = NewsClassifier(logger=logger)
+    classifier = ContentClassifier(logger=logger)
+
     
     # stage 1: scrape news.
     # while True:
@@ -49,14 +51,19 @@ def main():
     #         dbhandler.insert_news(item=item)
     
     # stage 2: news classification.
-    start_date=input("Enter start date in format like 2026-08-01: ")
-    end_date=input("Enter end date: ")
-    
-    dbhandler.retrieve_news_for_extracting_data(state=state, start_date=start_date, end_date=end_date)
-    extracted_datas = asyncio.run(classifier.extract_data_from_all_news(state=state))
-    
-    for item in extracted_datas:
-        dbhandler.update_news_classification(item=item)
+    while True:
+        start_date=input("Enter start date in format like 2026-08-01: ")
+        end_date=input("Enter end date: ")
+        
+        dates = dbhandler.retrieve_distinct_dates(start_date=start_date, end_date=end_date)
+        logger.info(f"Dates: {dates}")
+        
+        for date in dates:
+            dbhandler.retrieve_news_for_extracting_data(state=state, start_date=date['published_date'])
+            extracted_datas = asyncio.run(classifier.extract_data_from_all_news(state=state))
+            
+            for item in extracted_datas:
+                dbhandler.update_news_classification(item=item)
     
     # stage 3: extract AI project details.
     
