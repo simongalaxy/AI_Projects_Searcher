@@ -16,11 +16,10 @@ class Summary(BaseModel):
     
 class ExtractedData(BaseModel):
     id: str = Field(description="ID of the press release")
-    # subject_department: str = Field(description="Subject Department/Bureau issued this press release")
+    subject_department: str = Field(description="Subject Department/Bureau issued this press release")
     ai_related: bool = Field(description="if the content of the press release is relating to Artificial Intelligence, set True, Otherwise, False")
 
 # class AI_Project(BaseModel):
-#     subject_department: str = Field(description="Name of Department")
 #     project_name: str = Field(description="Name of AI project")
 #     aspects_used_AI: List[str] = Field(description="Aspects applied AI, such as, data analysis, image processing, document editing")
 #     AI_How_to: str = Field(description="ways to apply AI to workflow")

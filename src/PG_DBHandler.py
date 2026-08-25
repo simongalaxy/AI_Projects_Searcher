@@ -29,7 +29,7 @@ class PG_DBHandler:
         self._ensure_database_exists()
         self._create_table()
 
-
+    # check whether the database exists.
     def _ensure_database_exists(self) -> None:
         """
         Check if a PostgreSQL database exists. 
@@ -53,7 +53,7 @@ class PG_DBHandler:
 
         return
 
-    
+    # create table when needed.
     def _create_table(self) -> None:
         create_table_query = """
         CREATE EXTENSION IF NOT EXISTS vector;
@@ -88,7 +88,7 @@ class PG_DBHandler:
     # ---------------------------------------------------------
    
     # just add raw data of job info to database.
-    def insert_news(self, item: NewsItem) -> str | None:
+    def insert_query(self, item: NewsItem) -> None:
         
         """Insert or update a news item. Returns the id on success."""
         insert_query = """
@@ -146,6 +146,7 @@ class PG_DBHandler:
     def update_news_classification(self, item: ExtractedData) -> str | None:
         update_query = """UPDATE PressReleases SET
             ai_related = %s,
+            subject_department = %s,
             updated_at = NOW()
         WHERE id = %s
         RETURNING id;
@@ -154,6 +155,7 @@ class PG_DBHandler:
         # Note that job_item.id moves to the VERY END of the tuple to match the WHERE clause
         values = (
             item.ai_related,
+            item.subject_department,
             item.id, 
         )
 
@@ -176,38 +178,50 @@ class PG_DBHandler:
             # raise  
             return None
     
-    
-    def retrieve_news_for_extracting_data(self, state: State, start_date, end_date) -> None:
+
+    def query_full_text_search(self, state: State) -> None:
         base = """
             SELECT
                 id,
+                published_date,
                 title,
-                content
+                content,
+                url,
+                subject_department,
+                ai_related
             FROM PressReleases
         """
         
         where_clauses = []
         params = []
 
-        # date range
-        # if state.parsed_query.start_date and state.parsed_query.end_date:
-        #     where_clauses.append("published_date BETWEEN %s AND %s")
-        #     params.append(state.parsed_query.start_date)
-        #     params.append(state.parsed_query.end_date)
-        # elif state.parsed_query.start_date or state.parsed_query.end_date:
-        #     where_clauses.append("published_date = %s")
-        #     params.append(state.parsed_query.start_date)
-        # else:
-        #     pass
-        if start_date and end_date:
+        # date range.
+        if state.parsed_query.start_date and state.parsed_query.end_date:
             where_clauses.append("published_date BETWEEN %s AND %s")
-            params.append(start_date)
-            params.append(end_date)
-        elif start_date or end_date:
+            params.append(state.parsed_query.start_date)
+            params.append(state.parsed_query.end_date)
+        elif state.parsed_query.start_date or state.parsed_query.end_date:
             where_clauses.append("published_date = %s")
-            params.append(start_date)
+            params.append(state.parsed_query.start_date)
         else:
             pass
+        
+        # build tsquery string
+        # 1. Departments.
+        depts = [f"({item.replace(" ", " <-> ")})" for item in state.parsed_query.departments]
+        tsquery_depts = " | ".join(depts)
+        self.logger.info(f"tsquery_depts: {tsquery_depts}")
+        
+        # 2. keywords.
+        keywords = [f"({item.replace(" ", " <-> ")})" for item in state.parsed_query.keywords]
+        tsquery_keywords = " | ".join(keywords)
+        self.logger.info(f"tsquery_keywords: {tsquery_keywords}")
+
+        tsquery = f"({tsquery_depts}) & ({tsquery_keywords})"
+        # keyword Full Text Search filter
+        if tsquery:
+            where_clauses.append("to_tsvector('english', content) @@ to_tsquery('english', %s)")
+            params.append(tsquery)
         
         #--- Assemble WHERE clause ---
         where_sql = ""
@@ -223,10 +237,7 @@ class PG_DBHandler:
             cur.execute(sql, params)
             rows = cur.fetchall()
             state.search_results = [dict(row) for row in rows]
-            # self.logger.info(f"Total no. of news retrieved from period {start_date} to {end_date}: {len(state.search_results)}")
-            # self.logger.info(f"First retrieved news: \n%s", pformat(state.search_results[0], indent=2))
-            # self.logger.info(f"DataType of retreived news: {type(state.search_results[0])}")
-            
+            self.logger.info(f"search results: {state.search_results}")
             return
         
     #  Build a dynamic SQL query string based on the values present in ParsedQuery, Returns (sql_string, params_list).
