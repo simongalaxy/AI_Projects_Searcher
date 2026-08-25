@@ -16,7 +16,7 @@ def main():
     # initialize logger and crawler
     logger = Logger(__name__).get_logger()
     state = State()
-    # parser = QueryParser(logger=logger)
+    parser = QueryParser(logger=logger)
     # scraper = NewsScraper(logger=logger)
     dbhandler = PG_DBHandler(logger=logger)
     classifier = NewsClassifier(logger=logger)
@@ -30,6 +30,7 @@ def main():
         
         # parse the user query.
         parser.parse_query(state=state)
+        
         
     #     # crawl all relevant news based on parsed_query.
     #     if state.parsed_query.start_date is not None:
