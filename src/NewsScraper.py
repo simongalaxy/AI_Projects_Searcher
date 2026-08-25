@@ -69,7 +69,7 @@ class NewsScraper:
             return "Remarks"
         elif re.match(r"^LCQ\d+", title):
             return "Legco_Query"
-        elif re.match(r"^Speech", title):
+        elif re.match(r"\bspeech", title):
             return "Speech"
         else:
             return "Press_Release"

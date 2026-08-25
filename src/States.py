@@ -5,6 +5,9 @@ from typing import List, Optional
 class ParsedQuery(BaseModel):
     start_date: str = Field(description="The beginning date, ISO date format YYYY-MM-DD")
     end_date: str | None = Field(description="The ending date, ISO date format YYYY-MM-DD")
+    departments: List[str] | None = Field(description="Name of Department or Bureau")
+    keywords: List[str] | None = Field(description="keywords for searching")
+    action: str | None = Field(description="action to do in the query")
 
 class Summary(BaseModel):
     id: str = Field(description="ID of the press release")

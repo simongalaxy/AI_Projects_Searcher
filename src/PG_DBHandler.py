@@ -191,16 +191,6 @@ class PG_DBHandler:
         where_clauses = []
         params = []
 
-        # date range
-        # if state.parsed_query.start_date and state.parsed_query.end_date:
-        #     where_clauses.append("published_date BETWEEN %s AND %s")
-        #     params.append(state.parsed_query.start_date)
-        #     params.append(state.parsed_query.end_date)
-        # elif state.parsed_query.start_date or state.parsed_query.end_date:
-        #     where_clauses.append("published_date = %s")
-        #     params.append(state.parsed_query.start_date)
-        # else:
-        #     pass
         if start_date and end_date:
             where_clauses.append("published_date BETWEEN %s AND %s")
             params.append(start_date)
