@@ -63,7 +63,7 @@ def main():
                     state.parsed_query.keywords = None
             
             # make query to Neon DB.
-            dbhandler.query_full_text_search(state: State)
+            dbhandler.query_full_text_search(state=state)
 
     
     

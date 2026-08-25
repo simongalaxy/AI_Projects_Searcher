@@ -88,7 +88,7 @@ class PG_DBHandler:
     # ---------------------------------------------------------
    
     # just add raw data of job info to database.
-    def insert_query(self, item: NewsItem) -> None:
+    def insert_news(self, item: NewsItem) -> None:
         
         """Insert or update a news item. Returns the id on success."""
         insert_query = """
