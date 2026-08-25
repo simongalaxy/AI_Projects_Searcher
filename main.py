@@ -3,9 +3,11 @@ from pprint import pformat
 
 from src.logger import Logger
 from src.States import State
-from src.NewsScraper import NewsScraper
-from src.QueryParser import QueryParser
+# from src.NewsScraper import NewsScraper
+# from src.QueryParser import QueryParser
 from src.PG_DBHandler import PG_DBHandler
+from src.NewsClassifier import NewsClassifier
+
 
 
 # main entry point.
@@ -14,10 +16,10 @@ def main():
     # initialize logger and crawler
     logger = Logger(__name__).get_logger()
     state = State()
-    parser = QueryParser(logger=logger)
-    scraper = NewsScraper(logger=logger)
+    # parser = QueryParser(logger=logger)
+    # scraper = NewsScraper(logger=logger)
     dbhandler = PG_DBHandler(logger=logger)
-   
+    classifier = NewsClassifier(logger=logger)
     
     # Scrape news and save them into Neon DB.
     while True:
@@ -29,47 +31,37 @@ def main():
         # parse the user query.
         parser.parse_query(state=state)
         
-        # scrape and save news if action = "scrape":
-        if state.parsed_query.action == "scrape":
-            # crawl all relevant news based on parsed_query.
-            if state.parsed_query.start_date is not None:
-                scraper.fetch_news_by_dates(state=state)
-            
-            # show summary of scraped news items by date.
-            for date, news_urls in zip(state.dates, state.news_urls):
-                logger.info(f"Date Page - {date}: {len(news_urls)} news.")
-            logger.info("\n")
-            
-            # save news to database.
-            for item in state.news_items:
-                dbhandler.insert_news(item=item)
+    #     # crawl all relevant news based on parsed_query.
+    #     if state.parsed_query.start_date is not None:
+    #         scraper.fetch_news_by_dates(state=state)
         
-        elif state.parsed_query.action == "retrieve":
-            if state.parsed_query.start_date is None:
-                start_date = input("Please enter the start date in YYYY-MM-DD Format: ")
-            
-            if state.parsed_query.end_date is None:
-                end_date = input("Please enter the start date in YYYY-MM-DD Format: ")
-            
-            if state.parsed_query.keywords is None:
-                keywords = input("Please enter the keywords with ', ' as seperator: ")
-                state.parsed_query.keywords = [item.strip() for item in keywords.split(',')]
-                
-            if state.parsed_query.departments is None:
-                departments = input("Please enter the departments with ', ' as seperator: ")
-                state.parsed_query.keywords = [item.strip() for item in departments.split(',')]
-
-            # run full-text search query in Neon DB.
-            logger.info("run query:")
-            logger.info(f"start_date: {state.parsed_query.start_date}")
-            logger.info(f"end_date: {state.parsed_query.end_date}")
-            logger.info(f"departments: {state.parsed_query.departments}")
-            logger.info(f"keywords: {state.parsed_query.keywords}")
-                
-        else:
-            print("incorrect action !")
-            logger.info("incorrect action !")
+    #     # show summary of scraped news items by date.
+    #     for date, news_urls in zip(state.dates, state.news_urls):
+    #         logger.info(f"Date Page - {date}: {len(news_urls)} news.")
+    #     logger.info("\n")
+        
+    #     # extract information from the news.
+    #     # asyncio.run(extractor.extract_data_from_all_news(state=state))
+        
+    #     # # save news to database.
+    #     # logger.info(f"Start saving total {len(state.news_items)} to database.")
+    #     for item in state.news_items:
+    #         dbhandler.insert_news(item=item)
     
+    # stage 2: news classification.
+    start_date=input("Enter start date in format like 2026-08-01: ")
+    end_date=input("Enter end date: ")
+    
+    dbhandler.retrieve_news_for_extracting_data(state=state, start_date=start_date, end_date=end_date)
+    extracted_datas = asyncio.run(classifier.extract_data_from_all_news(state=state))
+    
+    for item in extracted_datas:
+        dbhandler.update_news_classification(item=item)
+    
+    # stage 3: extract AI project details.
+    
+    
+        
     return
 
 if __name__ == "__main__":
