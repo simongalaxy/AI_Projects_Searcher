@@ -7,7 +7,7 @@ from pprint import pformat
 
 from src.Settings import settings
 from src.logger import Logger
-from src.States import NewsItem, ParsedQuery, State, ExtractedData, Summary
+from src.States import NewsItem, ParsedQuery, State, ExtractedData
 
 
 class PG_DBHandler:
@@ -147,6 +147,7 @@ class PG_DBHandler:
         update_query = """UPDATE PressReleases SET
             ai_related = %s,
             subject_department = %s,
+            summary = %s
             updated_at = NOW()
         WHERE id = %s
         RETURNING id;
@@ -156,6 +157,7 @@ class PG_DBHandler:
         values = (
             item.ai_related,
             item.subject_department,
+            item.summary,
             item.id, 
         )
 
@@ -186,9 +188,7 @@ class PG_DBHandler:
                 published_date,
                 title,
                 content,
-                url,
-                subject_department,
-                ai_related
+                url
             FROM PressReleases
         """
         
@@ -237,7 +237,8 @@ class PG_DBHandler:
             cur.execute(sql, params)
             rows = cur.fetchall()
             state.search_results = [dict(row) for row in rows]
-            self.logger.info(f"search results: {state.search_results}")
+            for i, item in enumerate(state.search_results, start=1):
+                self.logger.info(f"Query Search Result No.: {i}/{len(state.search_results)} - /n%s", pformat(item, indent=4))
             return
         
     #  Build a dynamic SQL query string based on the values present in ParsedQuery, Returns (sql_string, params_list).

@@ -18,7 +18,7 @@ class NewsClassifier:
         self.logger = logger
         
         # Explicitly declare the remote host address
-        self.model_name = settings.ollama_cloud_model
+        self.model_name = settings.ollama_cloud_model_classification
         self.base_url = settings.ollama_base_url
         self.api_key = settings.ollama_api_key
         self.client = instructor.from_openai(
@@ -35,13 +35,14 @@ class NewsClassifier:
         combined_content = f"id: {item.get('id')}\nTitle:\n{item.get('title')}\nContent:\n{item.get('content')}"
         self.logger.info(f"Combined content: \n{combined_content}")
         
+        # 💡 優化提示詞：讓 Ollama 根據 JSON Schema 自動填入，通常不需要在 Prompt 強調 True/False 字串
         prompt = f"""
-        Extract the information from the content and strictly follow the rule below:
+               You are an expert data extraction assistant. Analyze the text provided below and extract specific information based on the fields required.
+       
+               Text to analyze:\n{combined_content}\n
+               """
         
-        content: \n{combined_content}\n
-        
-        """
-        
+        # resp 本身就已經是 ExtractedData 物件
         resp = await self.client.create(
             model=self.model_name,
             messages=[
@@ -53,11 +54,11 @@ class NewsClassifier:
             response_model=ExtractedData,
         )
         
-        extracted_data = ExtractedData.model_validate(resp)
+        # 💡 修正：移除冗餘的 ExtractedData.model_validate(resp)
         self.logger.info(f"id: {item.get('id')}, \ntitle: {item.get('title')}")
-        self.logger.info(f"Extracted item: \n%s", pformat(extracted_data.model_dump(by_alias=True), indent=2))
+        self.logger.info(f"Extracted item: \n%s", pformat(resp.model_dump(by_alias=True), indent=2))
         
-        return extracted_data
+        return resp
         
         
     async def extract_data_from_all_news(self, state: State):
@@ -68,12 +69,24 @@ class NewsClassifier:
         
         async def bounded_extract(item: dict):
             async with semaphore:
-                return await self._extract_data(item = item)
+                try:
+                    return await self._extract_data(item = item)
+                except Exception as e:
+                    # 💡 紀錄單一任務失敗的 Log，避免無聲無息地不見
+                    self.logger.error(f"Failed to extract item {item.get('id')}: {e}")
+                    return e
 
         tasks = [bounded_extract(item=result) for result in state.search_results]
-        extracted_datas = await asyncio.gather(*tasks, return_exceptions=True)
+        raw_results = await asyncio.gather(*tasks, return_exceptions=True)
         
-        self.logger.info(f"Extraction completed. {len(state.search_results)} press releases processed.")
+        # 💡 修正：過濾掉 Exception 物件，確保 main.py 拿到的都是 ExtractedData 
+        extracted_datas = [res for res in raw_results if isinstance(res, ExtractedData)]
+        
+        # 可選：如果你想知道失敗了幾個
+        failed_count = len(raw_results) - len(extracted_datas)
+        if failed_count > 0:
+            self.logger.warning(f"Successfully processed {len(extracted_datas)} items, but {failed_count} items failed.")
+        else:
+            self.logger.info(f"Extraction completed. {len(state.search_results)} press releases processed.")
         
         return extracted_datas
-        

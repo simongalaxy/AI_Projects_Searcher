@@ -25,6 +25,8 @@ class ContentClassifier:
         )
         self.logger.info(f"Ollama Summarizer initialized with model: {self.model_name}")
         
+        # ollama cloud settings.
+        
         
     async def _extract_data(self, item: dict) -> ExtractedData:
         

@@ -6,12 +6,13 @@ from src.States import State
 from src.NewsScraper import NewsScraper
 from src.QueryParser import QueryParser
 from src.PG_DBHandler import PG_DBHandler
+from src.NewsClassifier import NewsClassifier
 
 
 
 
 # main entry point.
-def main():
+async def main():
     
     # initialize logger and crawler
     logger = Logger(__name__).get_logger()
@@ -64,11 +65,14 @@ def main():
             
             # make query to Neon DB.
             dbhandler.query_full_text_search(state=state)
-
-    
-    
+            classifier = NewsClassifier(logger=logger)
+            extracted_datas = await classifier.extract_data_from_all_news(state=state)
+            
+            # update classification results accordingly in neon db.
+            for item in extracted_datas:
+                dbhandler.update_news_classification(item=item)
         
     return
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

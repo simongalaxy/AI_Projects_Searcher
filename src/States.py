@@ -9,22 +9,25 @@ class ParsedQuery(BaseModel):
     keywords: List[str] | None = Field(description="keywords for searching")
     action: str | None = Field(description="action to do in the query")
 
-class Summary(BaseModel):
-    id: str = Field(description="ID of the press release")
-    content: str = Field(description="Summary of Press Release with maximum 800 words. All names should be kept.")
-    embeddings: List[float] | None    
+# class Summary(BaseModel):
+#     id: str = Field(description="ID of the press release")
+#     content: str = Field(description="Summary of Press Release with maximum 800 words. All names should be kept.")
+#     # embeddings: List[float] | None    
+
+class AI_Project(BaseModel):
+    project_name: str = Field(description="Name of AI project")
+    aspects_used_AI: List[str] = Field(description="Aspects applied AI, such as, data analysis, image processing, document editing")
+    AI_How_to: str = Field(description="ways to apply AI to workflow")
+    AI_tools: List[str] = Field(description="AI tools used")
+    benefits: str = Field(description="Benefits after AI adaption")
     
 class ExtractedData(BaseModel):
     id: str = Field(description="ID of the press release")
     subject_department: str = Field(description="Subject Department/Bureau issued this press release")
     ai_related: bool = Field(description="if the content of the press release is relating to Artificial Intelligence, set True, Otherwise, False")
+    summary: str = Field(description="Summary of Press Release with maximum 800 words. All names should be kept.")
+    # ai_project: AI_Project | None
 
-# class AI_Project(BaseModel):
-#     project_name: str = Field(description="Name of AI project")
-#     aspects_used_AI: List[str] = Field(description="Aspects applied AI, such as, data analysis, image processing, document editing")
-#     AI_How_to: str = Field(description="ways to apply AI to workflow")
-#     AI_tools: List[str] = Field(description="AI tools used")
-#     benefits: str = Field(description="Benefits after AI adaption")
     
 class NewsItem(BaseModel): # to store the news items that are relevant to the user query.
     id: str = Field(description="ID of the press release")
@@ -34,7 +37,7 @@ class NewsItem(BaseModel): # to store the news items that are relevant to the us
     url: str = Field(description="url of the press release")
     published_date: date = Field(description="Date published the press release")
     extracted_data: ExtractedData | None = Field(description="Extracted data from the press release, if available")
-    summary: Summary | None = Field(description="summary and its embedding of the press release")
+    summary: str | None = Field(description="summary and its embedding of the press release")
     
 class State(BaseModel): # to store the overall state of the system, including the parsed query and the news items.
     original_query: str = None
