@@ -10,6 +10,7 @@ dependencies = [
     "dotenv>=0.9.9",
     "fastembed>=0.8.0",
     "instructor>=1.15.4",
+    "langgraph>=1.2.11",
     "ollama>=0.6.2",
     "psycopg2>=2.9.12",
     "pydantic>=2.12.5",

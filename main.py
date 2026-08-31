@@ -12,7 +12,7 @@ from src.NewsClassifier import NewsClassifier
 
 
 # main entry point.
-async def main():
+def main():
     
     # initialize logger and crawler
     logger = Logger(__name__).get_logger()
@@ -66,7 +66,7 @@ async def main():
             # make query to Neon DB.
             dbhandler.query_full_text_search(state=state)
             classifier = NewsClassifier(logger=logger)
-            extracted_datas = await classifier.extract_data_from_all_news(state=state)
+            # extracted_datas = await classifier.extract_data_from_all_news(state=state)
             
             # update classification results accordingly in neon db.
             for item in extracted_datas:
@@ -75,4 +75,5 @@ async def main():
     return
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    # asyncio.run(main())
+    main()
