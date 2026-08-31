@@ -2,9 +2,10 @@ import instructor
 from openai import OpenAI
 from pprint import pformat
 
-from src.Settings import settings
-from src.logger import Logger
-from src.States import ParsedQuery, State
+from src.Util.Settings import settings
+from src.Util.logger import Logger
+from src.Data.DataClasses import ParsedQuery
+from src.Core.State import State
 
 class QueryParser:
     def __init__(self, logger: Logger):

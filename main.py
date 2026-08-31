@@ -1,14 +1,13 @@
 import asyncio
 from pprint import pformat
 
-from src.logger import Logger
-from src.States import State
+from src.Util.logger import Logger
+from src.Core.State import State
+
 from src.NewsScraper import NewsScraper
 from src.QueryParser import QueryParser
 from src.PG_DBHandler import PG_DBHandler
 from src.NewsClassifier import NewsClassifier
-
-
 
 
 # main entry point.

@@ -5,10 +5,10 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from typing import List, Tuple
 from pprint import pformat
 
-from src.Settings import settings
-from src.logger import Logger
-from src.States import NewsItem, ParsedQuery, State, ExtractedData
-
+from src.Util.Settings import settings
+from src.Util.logger import Logger
+from src.Core.State import State
+from src.Data.DataClasses import NewsItem, ParsedQuery, ExtractedData
 
 class PG_DBHandler:
     def __init__(self, logger: Logger):
