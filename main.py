@@ -12,6 +12,7 @@ def main():
     # initialize logger and crawler
     logger = Logger(__name__).get_logger()
     
+    
     load_workflow()
     
     # # Scrape news and save them into Neon DB.
