@@ -6,14 +6,20 @@ from typing import List, Any
 from datetime import datetime, timedelta
 from pprint import pformat
 
-from src.logger import Logger
-from src.States import State, NewsItem
+from src.Util.logger import Logger
+from src.Core.State import State
+from src.Data.DataClasses import NewsItem
 
 
 class NewsScraper:
     def __init__(self, logger):
         self.logger = logger
         self.base_url = "http://www.info.gov.hk"
+        self.dates = []
+        self.date_urls = []
+        self.news_urls = []
+        self.news_items = []
+        self.total_news_pages = 0
     
     
     # function to generate links based on the date range.
@@ -26,20 +32,20 @@ class NewsScraper:
             end_date = datetime.strptime(state.parsed_query.end_date, "%Y-%m-%d")
         self.logger.info(f"Start date: {start_date}, End Date: {end_date}")
         
-        dates = []
+        # dates = []
         current = start_date
         while current <= end_date:
-            dates.append(current.strftime("%Y%m%d"))
+            self.dates.append(current.strftime("%Y%m%d"))
             current += timedelta(days=1)
-        state.dates = dates
-        self.logger.info(f"Generated date range from {state.parsed_query.start_date} to {state.parsed_query.end_date}: {state.dates}")
+        # self.dates = dates
+        self.logger.info(f"Generated date range from {state.parsed_query.start_date} to {state.parsed_query.end_date}: {self.dates}")
         
-        state.date_urls = [f"{self.base_url}/gia/general/{date[:-2]}/{date[-2:]}.htm" for date in dates] # English version
-        self.logger.info(f"Generated {len(state.date_urls)} date URLs:")
+        self.date_urls = [f"{self.base_url}/gia/general/{date[:-2]}/{date[-2:]}.htm" for date in dates] # English version
+        self.logger.info(f"Generated {len(self.date_urls)} date URLs:")
         
-        for i, url in enumerate(state.date_urls, start=1):
-            self.logger.info(f"No. {i}: {url}\n")
-        self.logger.info("-"*50)
+        # for i, url in enumerate(self.date_urls, start=1):
+        #     self.logger.info(f"No. {i}: {url}\n")
+        # self.logger.info("-"*50)
         
         return
     
@@ -62,18 +68,6 @@ class NewsScraper:
         return dt.strftime("%Y-%m-%d")
 
 
-    # function to determine the type of content from press release.
-    def _determine_content_type(self, title: str) -> str:
-        
-        if re.search(r"\bremarks", title, re.IGNORECASE):
-            return "Remarks"
-        elif re.match(r"^LCQ\d+", title):
-            return "Legco_Query"
-        elif re.match(r"\bspeech", title):
-            return "Speech"
-        else:
-            return "Press_Release"
-
 
     # function to parse the news page and extract the content, title, date, url and news_id.
     def _parse_news(self, html: str, url: str) -> NewsItem:
@@ -85,30 +79,27 @@ class NewsScraper:
         published_date = self._convert_to_postgres_date(date_str=date)
         title = soup.find('span', id='PRHeadlineSpan').get_text(strip=True)
         content = soup.find('span', id='pressrelease').get_text(strip=True).replace("<p>", "").replace("</p>", "").replace("\u200b", "")
-        content_type = self._determine_content_type(title=title)
         
         item = NewsItem(
             id=news_id,
             published_date=published_date,
             title=title,
             content=content,
-            content_type=content_type,
-            url=str(url),
-            extracted_data=None,
-            summary=None
+            url=str(url)
         )
-        self.logger.info("Fetched news item: \n%s", pformat(item.model_dump(by_alias=True), indent=4))
+        # self.logger.info("Fetched news item: \n%s", pformat(item.model_dump(by_alias=True), indent=4))
         
         return item
 
     # show total news pages.
-    def _show_total_news_pages(self, state: State) -> None:
-        total_news_pages = 0
+    def _show_total_news_pages(self) -> None:
+       
+        # show the total number of news pages fetched from the date pages.
+        for date_url, news_urls in zip(self.date_urls, self.news_urls):
+            self.logger.info(f"Date page: {date_url} has {len(news_urls)} news pages.")
+            self.total_news_pages += len(news_urls)
         
-        for news_url in state.news_urls:
-            total_news_pages += len(news_url)
-        
-        self.logger.info(f"Total {total_news_pages} news pages were fetched from {len(state.date_urls)} date pages and saved to State.")
+        self.logger.info(f"Total {self.total_news_pages} news pages were fetched from {len(self.date_urls)} date pages and saved to State.")
         
         return
     
@@ -141,18 +132,16 @@ class NewsScraper:
         self._generate_date_urls(state=state)
         
         # fetch news URLs from each date page asynchronously.
-        state.news_urls = asyncio.run(self._fetch_all_pages(urls=state.date_urls, fetch_function=self._fetch_date_page))
+        self.news_urls = asyncio.run(self._fetch_all_pages(urls=self.date_urls, fetch_function=self._fetch_date_page))
         
         # fetch news items from each news page asynchronously.
-        all_items = []
-        for i, urls in enumerate(state.news_urls, start=1):
-            self.logger.info(f"Fetching news page {i}/{len(state.news_urls)}: {urls}")
+        for i, urls in enumerate(self.news_urls, start=1):
+            self.logger.info(f"Fetching news page {i}/{len(self.news_urls)}: {urls}")
             news_items = asyncio.run(self._fetch_all_pages(urls=urls, fetch_function=self._fetch_news_page))
-            all_items.extend(news_items)
+            self.news_items.extend(news_items)
         
-        state.news_items = all_items
         self._show_total_news_pages(state=state)
-        self.logger.info(f"Sample news item saved in State: \n%s", pformat(state.news_items[0].model_dump(by_alias=True), indent=4))
+        self.logger.info(f"Sample news item saved in State: \n%s", pformat(self.news_items[1].model_dump(by_alias=True), indent=4))
         
         return
     

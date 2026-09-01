@@ -1,38 +1,43 @@
-from langgraph.graph import StateGraph, END
+from langgraph.graph import StateGraph, START, END
 
-from Core.State import State
+from src.Core.State import State
+from src.Util.logger import Logger
+from src.Core.Nodes import (
+    parse_query_node,
+    # check_database_node,
+    fetch_and_save_node,
+    # retrieve_prs_node,
+    # generate_summary_node,
+    # routing_condition
+)
 
-
-def load_workflow(state: State) -> None:
-    workflow = StateGraph(state)
+def load_workflow():
+    
+    workflow = StateGraph(State)
 
     # Add Nodes
     workflow.add_node("parse_query", parse_query_node)
-    workflow.add_node("check_database", check_database_node)
+    # workflow.add_node("check_database", check_database_node)
     workflow.add_node("fetch_and_save", fetch_and_save_node)
-    workflow.add_node("retrieve_prs", retrieve_prs_node)
-    workflow.add_node("generate_summary", generate_summary_node)
+    # workflow.add_node("retrieve_prs", retrieve_prs_node)
+    # workflow.add_node("generate_summary", generate_summary_node)
 
-    # Set Entry Point
-    workflow.set_entry_point("parse_query")
+    # Standard Linear Edges 
+    workflow.add_edge(START, "parse_query")
+    workflow.add_edge("parse_query", "fetch_and_save")
+    workflow.add_edge("fetch_and_save", END)
 
-    # Standard Linear Edges
-    workflow.add_edge("parse_query", "check_database")
-    workflow.add_edge("fetch_and_save", "retrieve_prs")
-    workflow.add_edge("retrieve_prs", "generate_summary")
-    workflow.add_edge("generate_summary", END)
-
-    # Conditional Routing Edge
-    workflow.add_conditional_edges(
-        "check_database",
-        routing_condition,
-        {
-            "fetch_and_save": "fetch_and_save",
-            "retrieve_prs": "retrieve_prs"
-        }
-    )
+    # # Conditional Routing Edge
+    # workflow.add_conditional_edges(
+    #     "check_database",
+    #     routing_condition,
+    #     {
+    #         "fetch_and_save": "fetch_and_save",
+    #         "retrieve_prs": "retrieve_prs"
+    #     }
+    # )
 
     # Compile into an executable application
     app = workflow.compile()
     
-    return
+    return app

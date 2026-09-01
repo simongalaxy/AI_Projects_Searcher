@@ -62,11 +62,9 @@ class PG_DBHandler:
             id TEXT UNIQUE NOT NULL,
             title TEXT NOT NULL,
             content TEXT,
-            content_type TEXT,
             url TEXT NOT NULL,
             published_date DATE,
             subject_department TEXT,
-            ai_related BOOLEAN,
             summary TEXT,
             summary_embeddings vector(1536),
             created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -93,17 +91,15 @@ class PG_DBHandler:
         """Insert or update a news item. Returns the id on success."""
         insert_query = """
         INSERT INTO PressReleases (
-            id, title, content, content_type, url, published_date, subject_department, ai_related, summary, summary_embeddings
+            id, title, content, url, published_date, subject_department, summary, summary_embeddings
         )
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT (id) DO UPDATE SET
             title = EXCLUDED.title,
             content = EXCLUDED.content,
-            content_type = EXCLUDED.content_type,
             url = EXCLUDED.url,
             published_date = EXCLUDED.published_date,
             subject_department = EXCLUDED.subject_department,
-            ai_related = EXCLUDED.ai_related,
             summary = EXCLUDED.summary,
             summary_embeddings = EXCLUDED.summary_embeddings
         RETURNING id;
@@ -113,13 +109,11 @@ class PG_DBHandler:
             item.id,
             item.title,
             item.content,
-            item.content_type,
             item.url,
             item.published_date,
             item.extracted_data.subject_department if item.extracted_data else None,
-            item.extracted_data.ai_related if item.extracted_data else None,
-            item.summary.content if item.summary else None,
-            item.summary.embeddings if item.summary else None
+            item.extracted_data.summary if item.summary else None,
+            item.embeddings if item.summary else None
         )
 
         try:
@@ -145,7 +139,6 @@ class PG_DBHandler:
     #update the records in database with extracted job information to respective job accordingly.
     def update_news_classification(self, item: ExtractedData) -> str | None:
         update_query = """UPDATE PressReleases SET
-            ai_related = %s,
             subject_department = %s,
             summary = %s
             updated_at = NOW()
@@ -155,7 +148,6 @@ class PG_DBHandler:
 
         # Note that job_item.id moves to the VERY END of the tuple to match the WHERE clause
         values = (
-            item.ai_related,
             item.subject_department,
             item.summary,
             item.id, 

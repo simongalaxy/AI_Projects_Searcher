@@ -1,14 +1,11 @@
-from typing import TypedDict, List
+from typing import TypedDict, List, Annotated
 
-from Data.DataClasses import NewsItem, ParsedQuery
+from src.Data.DataClasses import ParsedQuery
 
 
 class State(TypedDict): # to store the overall state of the system, including the parsed query and the news items.
     original_query: str
     parsed_query: ParsedQuery
-    dates: List[str]
-    date_urls: List[str]
-    news_urls: List[str]
-    news_items: List[NewsItem]
+    next_node: str
     search_results: List[dict]
     media_summary: str

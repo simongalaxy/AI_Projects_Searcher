@@ -2,7 +2,7 @@ import logging
 import os
 from datetime import datetime
 
-from src.Settings import settings
+from src.Util.Settings import settings
 
 
 class Logger:
