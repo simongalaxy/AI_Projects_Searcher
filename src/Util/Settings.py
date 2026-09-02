@@ -19,10 +19,13 @@ class Settings(BaseSettings):
     ollama_api_key: str
     ollama_base_url: str
     ollama_cloud_model: str
-    ollama_cloud_model_classification: str
+    # ollama_cloud_model_classification: str
     
     # ollama localhost llm settings for content classification.
-    ollama_extraction_model: str
+    # ollama_extraction_model: str
+
+    embedding_model: str
+    
 
     # pydantic settings config.
     model_config = SettingsConfigDict(
