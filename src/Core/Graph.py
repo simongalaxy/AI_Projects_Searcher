@@ -1,6 +1,6 @@
 from langgraph.graph import StateGraph, START, END
 
-from src.Core.State import State
+from src.Core.State import AgentState
 from src.Util.logger import Logger
 from src.Core.Nodes import (
     parse_query_node,
@@ -13,7 +13,7 @@ from src.Core.Nodes import (
 
 def load_workflow():
     
-    workflow = StateGraph(State)
+    workflow = StateGraph(AgentState)
 
     # Add Nodes
     workflow.add_node("parse_query", parse_query_node)

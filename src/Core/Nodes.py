@@ -16,19 +16,22 @@
 
 # initiate classes.
 from src.Util.logger import Logger
-from src.Core.State import State
+from src.Core.State import AgentState
 from src.LLM.QueryParser import QueryParser
 from src.Database.PG_DBHandler import PG_DBHandler
 from src.WebScraper.NewsScraper import NewsScraper
 
-
+# initialize logger and crawler
+logger = Logger(__name__).get_logger()
+parser = QueryParser(logger=logger)
+scraper = NewsScraper(logger=logger)
+dbhandler = PG_DBHandler(logger=logger)
 
 
 # define nodes.
-def parse_query_node(state: State, logger: Logger):
-    parser = QueryParser(logger=logger)
-    state.original_query = input("Enter the query to the Gov News or type 'q' for exit:")
-    logger.info(f"User Query stored in state: {state.original_query}")
+def parse_query_node(state: AgentState):
+    state["original_query"] = input("Enter the query to the Gov News or type 'q' for exit:")
+    logger.info(f"User Query stored in state: {state['original_query']}")
     
     # parse the user query.
     parser.parse_query(state=state)
@@ -36,7 +39,7 @@ def parse_query_node(state: State, logger: Logger):
     return
 
 
-def fetch_and_save_node(state: State, dbhandler: PG_DBHandler, logger: Logger):
+def fetch_and_save_node(state: AgentState):
     # fetch news items based on the parsed query and save them to the database.
     logger.info("Fetching news items based on the parsed query and saving them to the database.")
     

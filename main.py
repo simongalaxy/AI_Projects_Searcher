@@ -1,10 +1,7 @@
 import asyncio
 from pprint import pformat
 
-from src.Util.logger import Logger
-from src.Core.State import State
 from src.Core.Graph import load_workflow
-
 
 # main entry point.
 def main():
@@ -12,9 +9,14 @@ def main():
     # initialize logger and crawler
     logger = Logger(__name__).get_logger()
     
-    
     load_workflow()
+    return
     
+if __name__ == "__main__":
+    # asyncio.run(main())
+    main()
+    
+# old code for reference:
     # # Scrape news and save them into Neon DB.
     # while True:
     #     state.original_query = input("Enter the query to the Gov News or type 'q' for exit:")
@@ -66,8 +68,4 @@ def main():
     #         for item in extracted_datas:
     #             dbhandler.update_news_classification(item=item)
         
-    return
-
-if __name__ == "__main__":
-    # asyncio.run(main())
-    main()
+    
